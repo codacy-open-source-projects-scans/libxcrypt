@@ -106,8 +106,16 @@
 %global _configure "$(realpath ../configure)"
 
 
+# Create config.cache to speedup the run of
+# the configure script for the compat package.
+%global nvrt_str %{name}-%{version}-%{release}.%{_target_cpu}
+%global mktemplate %{nvrt_str}-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+%global config_cache %(mktemp -tu %{mktemplate}-config.cache)
+
+
 # Common configure options.
 %global common_configure_options           \\\
+  --cache-file=%{config_cache}             \\\
   --disable-failure-tokens                 \\\
   --disable-silent-rules                   \\\
   --enable-shared                          \\\
@@ -198,11 +206,12 @@ Recommends:     mkpasswd
 %description
 libxcrypt is a modern library for one-way hashing of passwords.  It
 supports a wide variety of both modern and historical hashing methods:
-yescrypt, gost-yescrypt, scrypt, bcrypt, sha512crypt, sha256crypt,
-md5crypt, SunMD5, sha1crypt, NT, bsdicrypt, bigcrypt, and descrypt.
-It provides the traditional Unix crypt and crypt_r interfaces, as well
-as a set of extended interfaces pioneered by Openwall Linux, crypt_rn,
-crypt_ra, crypt_gensalt, crypt_gensalt_rn, and crypt_gensalt_ra.
+yescrypt, gost-yescrypt, sm3-yescrypt, scrypt, bcrypt, sm3crypt,
+sha512crypt, sha256crypt, md5crypt, SunMD5, sha1crypt, NT, bsdicrypt,
+bigcrypt, and descrypt.  It provides the traditional Unix crypt and
+crypt_r interfaces, as well as a set of extended interfaces pioneered
+by Openwall Linux, crypt_rn, crypt_ra, crypt_gensalt, crypt_gensalt_rn,
+and crypt_gensalt_ra.
 
 libxcrypt is intended to be used by login(1), passwd(1), and other
 similar programs; that is, to hash a small number of passwords during
@@ -327,6 +336,7 @@ EOF
 
 
 %build
+touch %{config_cache}
 mkdir -p %{_vpath_builddir}
 
 # Build the default system library.
@@ -341,7 +351,6 @@ pushd %{_vpath_builddir}
   --enable-obsolete-api-enosys=%{enosys_stubs}
 %endif
 %make_build
-%make_build test-programs
 popd
 
 %if %{with compat_pkg}
@@ -355,50 +364,9 @@ pushd %{_vpath_builddir}-compat
   --enable-obsolete-api=%{compat_api}            \
   --enable-obsolete-api-enosys=%{enosys_stubs}
 %make_build
-%make_build test-programs
 popd
 %endif
-
-mkdir -p %{_vpath_builddir}-all_possible_tests
-
-# The configure scripts want to use -Wl,--wrap to run some
-# special tests, which is not compatible with LTO.
-%global system_lto_cflags_bak %{_lto_cflags}
-%define _lto_cflags %{nil}
-
-# Reset compiler flags in env.
-unset CFLAGS
-unset CXXFLAGS
-unset FFLAGS
-unset FCFLAGS
-unset LDFLAGS
-unset LT_SYS_LIBRARY_PATH
-
-# Build a library suitable for all possible tests.
-pushd %{_vpath_builddir}-all_possible_tests
-# Disable arc4random_buf on purpose, so we are able
-# to run test/getrandom-fallback from testsuite.
-%configure                                       \
-ac_cv_func_arc4random_buf=no                     \
-%if %{with compat_pkg}
-  %{common_configure_options}                    \
-  --enable-hashes=all                            \
-  --enable-obsolete-api=%{compat_api}            \
-  --enable-obsolete-api-enosys=%{enosys_stubs}
-%else
-  %{common_configure_options}                    \
-  --enable-hashes=%{hash_methods}                \
-  --enable-obsolete-api=%{obsolete_api}          \
-%if %{with new_api}
-  --enable-obsolete-api-enosys=%{obsolete_api}
-%else
-  --enable-obsolete-api-enosys=%{enosys_stubs}
-%endif
-%endif
-%define _lto_cflags %{system_lto_cflags_bak}
-%make_build
-%make_build test-programs
-popd
+rm -f %{config_cache}
 
 
 %install
@@ -430,7 +398,6 @@ build_dirs="%{_vpath_builddir}"
 %if %{with compat_pkg}
 build_dirs="${build_dirs} %{_vpath_builddir}-compat"
 %endif
-build_dirs="${build_dirs} %{_vpath_builddir}-all_possible_tests"
 for dir in ${build_dirs}; do
   %make_build -C ${dir} check || \
     {

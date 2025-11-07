@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2019 Björn Esser <besser82@fedoraproject.org>
+/* Copyright (C) 2024 Björn Esser <besser82@fedoraproject.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -16,27 +16,27 @@
  * SUCH DAMAGE.
  */
 
-/* Simple commonly used helper functions.  */
+#ifndef _CRYPT_ALG_SM3_HMAC_H
+#define _CRYPT_ALG_SM3_HMAC_H
 
-#include "crypt-port.h"
+#include "alg-sm3.h"
 
-#include <stdlib.h>
-
-/* Provide a safe way to copy strings with the guarantee src,
-   including its terminating '\0', will fit d_size bytes.
-   The trailing bytes of d_size will be filled with '\0'.
-   dst and src must not be NULL.  Returns strlen (src).  */
-size_t
-strcpy_or_abort (void *dst, size_t d_size, const void *src)
+typedef struct
 {
-  assert (dst != NULL);
-  assert (src != NULL);
-  size_t s_size = strlen ((const char *)src);
-  assert (d_size > s_size);
-  if (!(d_size > s_size)) /* for NDEBUG builds */
-    abort();
+  sm3_ctx sm3_ctx;
+  uint8_t key[64];
+} sm3_hmac_ctx_t;
 
-  memcpy (dst, src, s_size);
-  memset (((char *)dst) + s_size, 0, d_size - s_size);
-  return s_size;
-}
+void sm3_hmac_init (sm3_hmac_ctx_t * ctx, const uint8_t * key,
+                    size_t key_len);
+void sm3_hmac_update (sm3_hmac_ctx_t * ctx, const uint8_t * data,
+                      size_t data_len);
+void sm3_hmac_final (sm3_hmac_ctx_t * ctx, uint8_t mac[32]);
+void sm3_hmac (const uint8_t * data, size_t data_len,
+               const uint8_t * key, size_t key_len,
+               uint8_t mac[32], sm3_hmac_ctx_t * ctx);
+void sm3_hmac_buf (const uint8_t * data, size_t data_len,
+                   const uint8_t * key, size_t key_len,
+                   uint8_t mac[32]);
+
+#endif /* _CRYPT_ALG_SM3_HMAC_H */

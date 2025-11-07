@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 m4_include([build-aux/m4/zw_automodern.m4])
 AC_INIT([xcrypt],
-        [4.4.37],
+        [4.5.2],
         [https://github.com/besser82/libxcrypt/issues],
         [libxcrypt],
         [https://github.com/besser82/libxcrypt])
@@ -24,18 +24,14 @@ AH_BOTTOM(
 # PKG_INSTALLDIR may not be defined, but we have a
 # compatibility replacement.
 m4_pattern_allow([PKG_INSTALLDIR])
+PKG_PROG_PKG_CONFIG_COMPAT([0.27], [PKG_CONFIG=false])
+AS_IF([test x"$PKG_CONFIG" != xfalse],
+  [PKG_INSTALLDIR],
+  [PKG_INSTALLDIR_COMPAT])
 
 # Checks for programs.
 AC_CANONICAL_HOST
 AC_PROG_CC
-
-# Dependencies
-PKG_PROG_PKG_CONFIG
-if $PKG_CONFIG --atleast-pkgconfig-version 0.27; then
-  PKG_INSTALLDIR
-else
-  PKG_INSTALLDIR_COMPAT
-fi
 
 # C99 language and library features are used unconditionally.
 # Don't even try to build with an older compiler.
@@ -236,7 +232,7 @@ AC_SUBST([BINDNOW_FLAG])
 
 # FIXME: This only checks whether the compiler accepts -fno-plt.
 # It doesn't check that the switch actually does what we want it to do.
-AX_APPEND_COMPILE_FLAGS([-fno-plt], [OPTI_FLAGS])
+AX_APPEND_COMPILE_FLAGS([-fno-plt], [OPTI_FLAGS], [$WARN_CFLAGS])
 
 # Export compiler flags for optimization.
 AC_SUBST([OPTI_FLAGS])
@@ -248,6 +244,7 @@ AC_CHECK_FUNCS_ONCE([
   explicit_memset
   getentropy
   getrandom
+  memset_explicit
   memset_s
   open64
   syscall

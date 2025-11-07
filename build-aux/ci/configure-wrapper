@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DEB_BUILD_MAINT_OPTIONS="${DEB_BUILD_MAINT_OPTIONS:-hardening=+all}"
+export DEB_BUILD_MAINT_OPTIONS="${DEB_BUILD_MAINT_OPTIONS:-hardening=+all optimize=-lto}"
 
 export CPPFLAGS="${CPPFLAGS} $(dpkg-buildflags --get CPPFLAGS)"
 export CFLAGS="${CFLAGS} $(dpkg-buildflags --get CFLAGS)"

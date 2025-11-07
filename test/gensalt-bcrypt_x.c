@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2019 Björn Esser <besser82@fedoraproject.org>
+/* Copyright (C) 2025 Björn Esser <besser82@fedoraproject.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -16,27 +16,39 @@
  * SUCH DAMAGE.
  */
 
-/* Simple commonly used helper functions.  */
-
 #include "crypt-port.h"
 
-#include <stdlib.h>
+#if INCLUDE_bcrypt_x
 
-/* Provide a safe way to copy strings with the guarantee src,
-   including its terminating '\0', will fit d_size bytes.
-   The trailing bytes of d_size will be filled with '\0'.
-   dst and src must not be NULL.  Returns strlen (src).  */
-size_t
-strcpy_or_abort (void *dst, size_t d_size, const void *src)
+#include <errno.h>
+#include <stdio.h>
+
+int
+main (void)
 {
-  assert (dst != NULL);
-  assert (src != NULL);
-  size_t s_size = strlen ((const char *)src);
-  assert (d_size > s_size);
-  if (!(d_size > s_size)) /* for NDEBUG builds */
-    abort();
+  char *retval;
 
-  memcpy (dst, src, s_size);
-  memset (((char *)dst) + s_size, 0, d_size - s_size);
-  return s_size;
+  errno = 0;
+  retval = crypt_gensalt ("$2x$", 0, NULL, 0);
+
+  if (retval || errno != EINVAL)
+    {
+      fprintf (stderr, "gensalt: expected \"NULL\", got \"%s\" "
+                       "with errno == %i, instead of %i.\n",
+               retval ? retval : "NULL", errno, EINVAL);
+
+      return 1;
+    }
+
+  return 0;
 }
+
+#else
+
+int
+main (void)
+{
+  return 77; /* UNSUPPORTED */
+}
+
+#endif /* INCLUDE_bcrypt_x */
